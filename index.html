@@ -1,0 +1,1756 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PokeCardHK v2.5 - 全球寶可夢卡安全格價與交易平台</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Inter Font -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700;800;900&display=swap">
+  
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    
+    @keyframes marquee {
+      0% { transform: translateX(0%); }
+      100% { transform: translateX(-50%); }
+    }
+    .animate-marquee {
+      animation: marquee 35s linear infinite;
+    }
+    
+    @keyframes scan {
+      0%, 100% { top: 0%; opacity: 0.3; }
+      50% { top: 100%; opacity: 1; }
+    }
+    .scanner-line {
+      animation: scan 2s ease-in-out infinite;
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #020617;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #eab308;
+    }
+
+    .scrollbar-none::-webkit-scrollbar {
+      display: none;
+    }
+    .scrollbar-none {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { border-color: rgba(234, 179, 8, 0.2); box-shadow: 0 0 10px rgba(234, 179, 8, 0.05); }
+      50% { border-color: rgba(234, 179, 8, 0.5); box-shadow: 0 0 20px rgba(234, 179, 8, 0.15); }
+    }
+    .premium-glow {
+      animation: pulseGlow 3s infinite;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col selection:bg-yellow-500 selection:text-slate-950">
+
+  <!-- Top Live Market Ticker with Currency Converted Prices -->
+  <div id="market-ticker-container" class="bg-slate-900 border-b border-slate-800 p-2.5 overflow-hidden shadow-md flex items-center"></div>
+
+  <!-- Header Section -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-40 px-4 py-3">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+      
+      <!-- Logo / Brand -->
+      <div class="flex items-center gap-3 cursor-pointer" onclick="resetBuyerSearch()">
+        <div class="bg-gradient-to-br from-yellow-400 to-amber-500 p-2.5 rounded-2xl shadow-lg shadow-amber-500/10">
+          <i data-lucide="sparkles" class="w-6 h-6 text-slate-950 fill-current"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-yellow-400 via-amber-200 to-white bg-clip-text text-transparent">
+              PokeCardHK
+            </span>
+            <span class="bg-yellow-500/20 text-yellow-400 text-[10px] font-bold px-1.5 py-0.5 rounded border border-yellow-500/30">
+              v2.5 安全認證版
+            </span>
+          </div>
+          <p id="site-subtitle" class="text-slate-400 text-xs">香港首個實時寶可夢卡庫存格價與防惡意爬蟲平台</p>
+        </div>
+      </div>
+
+      <!-- Settings / Auth & Role Switching Menu -->
+      <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
+        
+        <!-- Multi-Currency & Language Select Panel -->
+        <div class="flex items-center gap-2 bg-slate-950/80 p-1 rounded-xl border border-slate-800">
+          <div class="flex items-center gap-1.5 px-2 py-1 text-slate-400 text-xs">
+            <i data-lucide="languages" class="w-3.5 h-3.5 text-yellow-500"></i>
+            <select id="lang-select" onchange="changeLanguage(this.value)" class="bg-transparent border-none text-slate-100 font-semibold focus:outline-none cursor-pointer">
+              <option value="zh-HK" class="bg-slate-900 text-slate-100">🇭🇰 繁中</option>
+              <option value="zh-CN" class="bg-slate-900 text-slate-100">🇨🇳 简中</option>
+              <option value="en" class="bg-slate-900 text-slate-100">🇺🇸 English</option>
+            </select>
+          </div>
+
+          <div class="w-[1px] h-4 bg-slate-800"></div>
+
+          <div class="flex items-center gap-1.5 px-2 py-1 text-slate-400 text-xs">
+            <span class="font-bold text-yellow-500">$</span>
+            <select id="currency-select" onchange="changeCurrency(this.value)" class="bg-transparent border-none text-slate-100 font-semibold focus:outline-none cursor-pointer">
+              <option value="HKD" class="bg-slate-900 text-slate-100">HKD (HK$)</option>
+              <option value="JPY" class="bg-slate-900 text-slate-100">JPY (¥)</option>
+              <option value="USD" class="bg-slate-900 text-slate-100">USD ($)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Authentication Badge -->
+        <div id="auth-status-container" class="flex items-center bg-slate-950/80 border border-slate-800 p-1 rounded-xl text-xs font-bold"></div>
+
+        <!-- Buyer/Seller Switcher -->
+        <div class="flex items-center bg-slate-950/80 p-1 rounded-xl border border-slate-800 w-full sm:w-auto">
+          <button id="role-buyer-btn" onclick="setRole('buyer')" class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-300"></button>
+          <button id="role-seller-btn" onclick="setRole('seller')" class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-300"></button>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- Main WorkSpace Layout -->
+  <main id="main-content" class="flex-grow max-w-7xl w-full mx-auto px-4 py-6 space-y-10"></main>
+
+  <!-- Dynamic Modal Wrapper -->
+  <div id="modal-container"></div>
+
+  <!-- Global Toast Wrapper -->
+  <div id="toast-wrapper" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Footer -->
+  <footer class="mt-12 bg-slate-950 border-t border-slate-900 py-8 px-4 text-center">
+    <p class="text-slate-500 text-xs">© 2026 PokeCardHK - 香港首個智能安全防護寶可夢卡雙向格價平台</p>
+    <p class="text-slate-600 text-[10px] mt-2 leading-relaxed max-w-4xl mx-auto">
+      本平台防爬蟲機制已全面部署，嚴禁一切未經授權的 AI 爬蟲抓取、模型訓練與數據拷貝。本站所有商標與卡牌原圖權益歸任天堂、The Pokémon Company 所有。
+    </p>
+  </footer>
+
+  <script>
+    // Dictionary Data
+    const DICTIONARY = {
+      'zh-HK': {
+        subtitle: "香港首個實時寶可夢卡庫存格價與防惡意爬蟲平台",
+        buyerMode: "我是買家 (搵卡)",
+        sellerMode: "我是賣家 (放卡上架)",
+        liveBroadcast: "LIVE 實時行情",
+        heroTag: "⚡️ 解決全港玩家格價痛點",
+        heroTitle: "輸入卡名，即時對比",
+        heroSubtitle: "全港實體與網上個人商家最低價！",
+        searchPlaceholder: "輸入寶可夢名稱 (例如: 噴火龍, 皮卡丘) 或卡號...",
+        searchBtn: "搜卡",
+        gainersTitle: "近期飆升榜",
+        gainerChange: "7日漲幅",
+        trendingTitle: "大家都在搜",
+        trendingSub: "熱門卡片",
+        newsTitle: "全球 Pokémon 卡情報",
+        viewAll: "查看全部 →",
+        verifiedMember: "已認證會員",
+        loginRegister: "註冊 / 登入",
+        quickAuth: "快速註冊 / 登入",
+        authSub: "免記密碼，透過簡訊或電子郵件快速驗證",
+        phoneReg: "手機註冊",
+        emailReg: "Email 註冊",
+        phoneLabel: "流動電話號碼",
+        emailLabel: "電子郵件地址",
+        turnstileLabel: "驗證您是人類 (Cloudflare Turnstile)",
+        getOTP: "獲取驗證碼",
+        inputOTP: "輸入 6 位數驗證碼",
+        setNickname: "設定會員暱稱",
+        agreeTOS: "我已閱讀並同意卡網的 ",
+        tosLink: "《服務條款與免責聲明》",
+        tosSub: "及保護隱私政策，並承諾不使用惡意爬蟲破壞本站。",
+        confirmRegister: "同意條款並完成註冊",
+        backBtn: "返回修改",
+        cheapestTag: "👑 全港最平",
+        conditionLabel: "品相",
+        langLabel: "語言",
+        stockLabel: "庫存",
+        pcs: "張",
+        contactShop: "聯絡商家",
+        filterDistrict: "地區分類",
+        filterLanguage: "卡片語言",
+        filterCondition: "品相要求",
+        filterMerchantType: "商家類型",
+        allDistricts: "全部地區 (香港)",
+        allLanguages: "所有語言",
+        allConditions: "所有品相",
+        allMerchantTypes: "所有商家類型",
+        physicalShop: "實體店 🏪",
+        onlineMerchant: "網上賣家 🌐",
+        whatsappBtn: "一鍵發送 WhatsApp 查詢",
+        whatsappTemplateText: "你好！我喺 PokeCardHK 睇到你放售「{cardName}」，想查詢下而家同埋點樣交收？",
+        sellerPortal: "商家與個人賣家後台 (Seller Portal)",
+        registerShop: "登記新舖頭/開展個人賣場",
+        priceLabel: "實時售價 ({cur})",
+        stockQty: "庫存數量",
+        publishBtn: "立即發布/更新至前台",
+        myInventoryTitle: "我的現有貨物與實時庫存 ({count})",
+        qtyLabel: "數量",
+        inStockStatus: "● 上架中",
+        outStockStatus: "○ 暫時下架",
+        deleteListing: "下架",
+        newShopName: "商家/賣家名稱 *"
+      },
+      'zh-CN': {
+        subtitle: "香港首个实时宝可梦卡库存格价与防恶意爬虫平台",
+        buyerMode: "我是买家 (找卡)",
+        sellerMode: "我是卖家 (放卡上架)",
+        liveBroadcast: "LIVE 实时行情",
+        heroTag: "⚡️ 解决全港玩家格价痛点",
+        heroTitle: "输入卡名，即时对比",
+        heroSubtitle: "全港实体与网上个人商家最低价！",
+        searchPlaceholder: "输入宝可梦名称 (例如: 喷火龙, 皮卡丘) 或卡号...",
+        searchBtn: "搜卡",
+        gainersTitle: "近期飙升榜",
+        gainerChange: "7日涨幅",
+        trendingTitle: "大家都在搜",
+        trendingSub: "热门卡片",
+        newsTitle: "全球 Pokémon 卡情报",
+        viewAll: "查看全部 →",
+        verifiedMember: "已认证会员",
+        loginRegister: "注册 / 登录",
+        quickAuth: "快速注册 / 登录",
+        authSub: "免记密码，透过短信或电子邮件快速验证",
+        phoneReg: "手机注册",
+        emailReg: "Email 注册",
+        phoneLabel: "移动电话号码",
+        emailLabel: "电子邮箱地址",
+        turnstileLabel: "验证您是人类 (Cloudflare Turnstile)",
+        getOTP: "获取验证码",
+        inputOTP: "输入 6 位数验证码",
+        setNickname: "设定会员昵称",
+        agreeTOS: "我已阅读并同意卡网的 ",
+        tosLink: "《服务条款与免责声明》",
+        tosSub: "及保护隐私政策，并承诺不使用恶意爬虫破坏本站。",
+        confirmRegister: "同意条款并完成注册",
+        backBtn: "返回修改",
+        cheapestTag: "👑 全港最平",
+        conditionLabel: "品相",
+        langLabel: "语言",
+        stockLabel: "库存",
+        pcs: "张",
+        contactShop: "联络商家",
+        filterDistrict: "地区分类",
+        filterLanguage: "卡片语言",
+        filterCondition: "品相要求",
+        filterMerchantType: "商家类型",
+        allDistricts: "全部地区 (香港)",
+        allLanguages: "所有语言",
+        allConditions: "所有品相",
+        allMerchantTypes: "所有商家类型",
+        physicalShop: "实体店 🏪",
+        onlineMerchant: "网上卖家 🌐",
+        whatsappBtn: "一键发送 WhatsApp 查询",
+        whatsappTemplateText: "你好！我在 PokeCardHK 看到你放售「{cardName}」，想查询下现在还有没有以及如何交收？",
+        sellerPortal: "商家与个人卖家后台 (Seller Portal)",
+        registerShop: "登记新铺头/开展个人卖场",
+        priceLabel: "实时售价 ({cur})",
+        stockQty: "库存数量",
+        publishBtn: "立即发布/更新至前台",
+        myInventoryTitle: "我的现有货物与实时库存 ({count})",
+        qtyLabel: "数量",
+        inStockStatus: "● 上架中",
+        outStockStatus: "○ 暂时下架",
+        deleteListing: "下架",
+        newShopName: "商家/卖家名称 *"
+      },
+      'en': {
+        subtitle: "Hong Kong's Premium Pokémon Card Secure Search Engine",
+        buyerMode: "I am Buyer (Find Cards)",
+        sellerMode: "I am Seller (List Cards)",
+        liveBroadcast: "LIVE Ticker",
+        heroTag: "⚡️ Solving TCG Pricing Pain Points",
+        heroTitle: "Search & Match Instantly,",
+        heroSubtitle: "Compare Physical and Online Stores in HK!",
+        searchPlaceholder: "Enter Pokemon name (e.g. Charizard, Pikachu) or Card ID...",
+        searchBtn: "Search",
+        gainersTitle: "Top Gainers",
+        gainerChange: "7D Change",
+        trendingTitle: "Trending",
+        trendingSub: "Hot Searches",
+        newsTitle: "Global Pokémon News",
+        viewAll: "View All →",
+        verifiedMember: "Verified User",
+        loginRegister: "Register / Login",
+        quickAuth: "Quick Access Port",
+        authSub: "Password-free registration via Phone or Email OTP authentication",
+        phoneReg: "Phone Sign-Up",
+        emailReg: "Email Sign-Up",
+        phoneLabel: "Mobile Phone Number",
+        emailLabel: "Email Address",
+        turnstileLabel: "Verify you are human (Cloudflare Turnstile)",
+        getOTP: "Get OTP Code",
+        inputOTP: "6-Digit OTP Code",
+        setNickname: "User Nickname",
+        agreeTOS: "I have read and agree to ",
+        tosLink: "《Terms of Service》",
+        tosSub: "and promise not to deploy scrapers on this site.",
+        confirmRegister: "Accept & Create Account",
+        backBtn: "Modify",
+        cheapestTag: "👑 Best Deal",
+        conditionLabel: "Condition",
+        langLabel: "Language",
+        stockLabel: "Stock",
+        pcs: "pcs",
+        contactShop: "Contact",
+        filterDistrict: "District",
+        filterLanguage: "Language",
+        filterCondition: "Condition",
+        filterMerchantType: "Merchant",
+        allDistricts: "All HK Districts",
+        allLanguages: "All Languages",
+        allConditions: "All Conditions",
+        allMerchantTypes: "All Merchants",
+        physicalShop: "Physical Shop 🏪",
+        onlineMerchant: "Online Merchant 🌐",
+        whatsappBtn: "Send WhatsApp Inquiry",
+        whatsappTemplateText: "Hi! I saw your listing for \"{cardName}\" on PokeCardHK. Is it still available?",
+        sellerPortal: "Seller & Collector Portal (Seller Portal)",
+        registerShop: "Register New Store Profile",
+        priceLabel: "Price ({cur})",
+        stockQty: "Qty",
+        publishBtn: "Publish Listing",
+        myInventoryTitle: "My Live Inventory ({count})",
+        qtyLabel: "Qty",
+        inStockStatus: "● Live",
+        outStockStatus: "○ Hidden",
+        deleteListing: "Remove",
+        newShopName: "Shop / Seller Name *"
+      }
+    };
+
+    // Master Cards Database
+    const MASTER_CARDS = [
+      { id: "SV4a-308", name: { 'zh-HK': '噴火龍 ex (Charizard ex) SAR', 'zh-CN': '喷火龙 ex (Charizard ex) SAR', 'en': 'Charizard ex SAR' }, set: "Shiny Treasure ex", rarity: "SAR", type: "fire", imageBg: "from-orange-500 to-red-600", hp: 330, number: "308/190" },
+      { id: "SV8-131", name: { 'zh-HK': '皮卡丘 ex (Pikachu ex) SAR', 'zh-CN': '皮卡丘 ex (Pikachu ex) SAR', 'en': 'Pikachu ex SAR' }, set: "Supercharged Breaker", rarity: "SAR", type: "lightning", imageBg: "from-yellow-400 to-amber-500", hp: 200, number: "131/106" },
+      { id: "SV4a-345", name: { 'zh-HK': '奇樹 (Iono) SAR', 'zh-CN': '奇树 (Iono) SAR', 'en': 'Iono SAR' }, set: "Shiny Treasure ex", rarity: "SAR", type: "supporter", imageBg: "from-pink-400 to-purple-500", hp: null, number: "345/190" },
+      { id: "SV6a-086", name: { 'zh-HK': '厄鬼褓 ex (Ogerpon ex) SAR', 'zh-CN': '厄鬼褓 ex (Ogerpon ex) SAR', 'en': 'Ogerpon ex SAR' }, set: "Mask of Change", rarity: "SAR", type: "grass", imageBg: "from-green-400 to-emerald-600", hp: 210, number: "086/101" },
+      { id: "S8b-245", name: { 'zh-HK': '月亮伊布 VMAX Alt-Art', 'zh-CN': '月亮伊布 VMAX Alt-Art', 'en': 'Umbreon VMAX Alt-Art' }, set: "Eevee Heroes", rarity: "HR", type: "darkness", imageBg: "from-slate-800 to-indigo-950", hp: 310, number: "095/069" },
+      { id: "SV6-128", name: { 'zh-HK': '甲賀忍蛙 ex (Greninja ex) SAR', 'zh-CN': '甲贺忍蛙 ex (Greninja ex) SAR', 'en': 'Greninja ex SAR' }, set: "Crimson Haze", rarity: "SAR", type: "water", imageBg: "from-blue-600 to-slate-900", hp: 310, number: "090/066" },
+      { id: "SV9-130", name: { 'zh-HK': '伊布 (Eevee) SAR', 'zh-CN': '伊布 (Eevee) SAR', 'en': 'Eevee SAR' }, set: "Prismatic Evolutions", rarity: "SAR", type: "colorless", imageBg: "from-stone-300 via-stone-200 to-amber-200", hp: 70, number: "130/080" },
+      { id: "S12a-262", name: { 'zh-HK': '騎拉帝納 VSTAR UR', 'zh-CN': '骑拉帝纳 VSTAR UR', 'en': 'Giratina VSTAR UR' }, set: "VSTAR Universe", rarity: "UR", type: "dragon", imageBg: "from-yellow-600 via-yellow-500 to-amber-950", hp: 280, number: "262/172" }
+    ];
+
+    // Local Shops / Merchants Database
+    const SHops_DATABASE = [
+      { id: "shop-1", name: "旺角卡之谷 (Card Valley)", shopType: "physical", district: "旺角", address: "旺角信和中心 2 樓 230 號舖", whatsapp: "+852 9123 4567", hours: "13:00 - 21:00", delivery: "實體店自取 / 信和面交", rating: 4.8 },
+      { id: "shop-2", name: "TCG Master HK", shopType: "physical", district: "觀塘", address: "觀塘工業中心 B座 8 樓 12 室", whatsapp: "+852 6234 5678", hours: "14:00 - 22:00", delivery: "門市自取 / 順豐到付", rating: 4.9 },
+      { id: "shop-3", name: "阿龍卡牌網店 (Alan TCG)", shopType: "online", district: "沙田", address: "線上網店 / 無實體門市", whatsapp: "+852 5111 2222", hours: "24小時接單 (最快1小時回覆)", delivery: "郵寄 / 順豐到付 / 港鐵站面交", rating: 4.6 }
+    ];
+
+    // Mock Live Inventory listings
+    const INITIAL_INVENTORY = [
+      { id: "inv-1", shopId: "shop-1", cardId: "SV4a-308", price: 880, qty: 2, condition: "Near Mint (NM)", language: "Japanese", status: "active" },
+      { id: "inv-2", shopId: "shop-2", cardId: "SV4a-308", price: 850, qty: 1, condition: "Near Mint (NM)", language: "Japanese", status: "active" },
+      { id: "inv-3", shopId: "shop-3", cardId: "SV4a-308", price: 810, qty: 3, condition: "Near Mint (NM)", language: "Traditional Chinese", status: "active" },
+      { id: "inv-4", shopId: "shop-2", cardId: "SV8-131", price: 1150, qty: 2, condition: "Near Mint (NM)", language: "Japanese", status: "active" },
+      { id: "inv-5", shopId: "shop-3", cardId: "SV8-131", price: 1050, qty: 1, condition: "Lightly Played (LP)", language: "English", status: "active" },
+      { id: "inv-6", shopId: "shop-1", cardId: "SV4a-345", price: 680, qty: 4, condition: "Near Mint (NM)", language: "Japanese", status: "active" }
+    ];
+
+    const MOCK_NEWS = [
+      { id: 1, tag: "最新發售", tagColor: "bg-amber-500 text-slate-900", title: "「朱/紫」全新擴充包繁中版首度曝光！限定卡圖一覽", date: "2026-05-20", img: "linear-gradient(to bottom right, #f59e0b, #ef4444)", content: "今天代理商正式釋出了全新擴充包的高清預告圖，包含了萬眾矚目的全圖訓練家與特殊藝術卡（SAR），預計將於下個月在香港與台灣各大卡店全面同步鋪貨，掀起新一波開盒熱潮。" },
+      { id: 2, tag: "賽事情報", tagColor: "bg-blue-500 text-white", title: "2026 高級錦標賽（Regional）冠軍牌組與戰術全拆解", date: "2026-05-18", img: "linear-gradient(to bottom right, #3b82f6, #1d4ed8)", content: "在剛結束的 Regional 錦標賽中，以惡太晶噴火龍 ex 搭配全新輔助卡牌的體系以 90% 的勝率橫掃決賽圈。資深評審詳細解析了冠軍選手在面對控制流排組時的資源調配細節，為愛好者提供實用組牌指南。" },
+      { id: 3, tag: "國際快訊", tagColor: "bg-emerald-500 text-slate-900", title: "PokeBeach: 歐美市場下半年特典卡發布時間表流出", date: "2026-05-15", img: "linear-gradient(to bottom right, #10b981, #047857)", content: "根據國外知名情報網站 PokeBeach 爆料，歐美下半年的特別禮盒中將會額外附贈多款特殊卡面特典。由於插畫極具收藏美感，預計將對亞太地區的二手交易市場價格產生顯著的波動影響。" }
+    ];
+
+    // State Container
+    const state = {
+      lang: 'zh-HK',
+      currency: 'HKD',
+      role: 'buyer', // 'buyer' | 'seller'
+      inventory: [...INITIAL_INVENTORY],
+      shops: [...SHops_DATABASE],
+      
+      // Filter parameters
+      searchQuery: '',
+      selectedDistrict: 'all',
+      selectedLanguage: 'all',
+      selectedCondition: 'all',
+      selectedMerchantType: 'all',
+      selectedCard: null, // Selected card details page
+
+      // Verified Membership State
+      currentUser: null,
+      authModalOpen: false,
+      authStep: 1,
+      authMethod: 'phone',
+      inputPhone: '',
+      inputEmail: '',
+      inputOTP: '',
+      inputNickname: '',
+      
+      // Selected elements for detail Modals
+      contactModalShop: null,
+      currentSelectedNews: null,
+      tosModalOpen: false,
+      isListening: false
+    };
+
+    const EXCHANGE_RATES = { HKD: 1, JPY: 19.52, USD: 0.128 };
+    const CURRENCY_SYMBOLS = { HKD: 'HK$', JPY: '¥', USD: '$' };
+
+    // Localization translator helper
+    function t(key) {
+      return DICTIONARY[state.lang][key] || DICTIONARY['zh-HK'][key] || key;
+    }
+
+    // Dynamic Currency conversions
+    function formatConvertedPrice(hkdPrice) {
+      const converted = hkdPrice * EXCHANGE_RATES[state.currency];
+      const symbol = CURRENCY_SYMBOLS[state.currency];
+      if (state.currency === 'JPY') {
+        return `${symbol}${Math.round(converted).toLocaleString()}`;
+      }
+      return `${symbol}${converted.toFixed(2)}`;
+    }
+
+    // Toast notification manager
+    function triggerToast(message) {
+      const wrapper = document.getElementById('toast-wrapper');
+      const toastId = `toast-${Date.now()}`;
+      const toastHTML = `
+        <div id="${toastId}" class="bg-slate-900 border-2 border-yellow-500/50 text-yellow-400 px-6 py-3.5 rounded-2xl shadow-2xl flex items-center gap-2 font-bold text-sm transform transition duration-300 translate-y-5 opacity-0 pointer-events-auto">
+          <i data-lucide="sparkles" class="w-5 h-5 shrink-0 text-yellow-400"></i>
+          <span>${message}</span>
+        </div>
+      `;
+      wrapper.insertAdjacentHTML('beforeend', toastHTML);
+      lucide.createIcons();
+
+      const element = document.getElementById(toastId);
+      setTimeout(() => element.classList.remove('translate-y-5', 'opacity-0'), 10);
+      setTimeout(() => {
+        element.classList.add('translate-y-5', 'opacity-0');
+        setTimeout(() => element.remove(), 300);
+      }, 3000);
+    }
+
+    // Live Marquee Rendering
+    function renderLiveMarquee() {
+      const marqueeContainer = document.getElementById('market-ticker-container');
+      const tickerFeed = [
+        { platform: "🇯🇵 Mercari", card: "噴火龍ex SAR", value: 4580, change: "+2.4%", trend: "up" },
+        { platform: "🌎 eBay", card: "Pikachu ex SAR", value: 1250, change: "+5.1%", trend: "up" },
+        { platform: "🇹🇼 蝦皮", card: "甲賀忍蛙 ex", value: 1650, change: "+1.8%", trend: "up" },
+        { platform: "🇯🇵 Yahoo", card: "莉莉艾 爭奪戰", value: 18200, change: "-0.2%", trend: "down" }
+      ];
+
+      let innerHTML = '';
+      [...tickerFeed, ...tickerFeed].forEach(feed => {
+        const trendColor = feed.trend === 'up' ? 'text-emerald-400' : 'text-red-400';
+        const trendIcon = feed.trend === 'up' ? '▲' : '▼';
+        innerHTML += `
+          <span class="inline-flex items-center gap-2">
+            <span class="bg-slate-950 px-1.5 py-0.5 rounded text-[10px] text-slate-400 font-bold">${feed.platform}</span>
+            <span class="text-slate-200 font-extrabold">${feed.card}</span>
+            <span class="text-slate-300 font-black">${formatConvertedPrice(feed.value)}</span>
+            <span class="${trendColor} font-bold text-[10px]">${trendIcon} ${feed.change}</span>
+            <span class="text-slate-700 font-light px-2">|</span>
+          </span>
+        `;
+      });
+
+      marqueeContainer.innerHTML = `
+        <div class="max-w-7xl mx-auto flex items-center w-full overflow-hidden">
+          <div class="flex items-center gap-2 shrink-0 bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 px-3 py-1 rounded-lg text-xs font-bold animate-pulse z-10">
+            <i data-lucide="globe" class="w-3.5 h-3.5"></i> ${t('liveBroadcast')}
+          </div>
+          <div class="flex-1 overflow-hidden relative h-6 ml-4">
+            <div class="flex items-center gap-8 whitespace-nowrap animate-marquee absolute left-0 top-0">
+              ${innerHTML}
+            </div>
+          </div>
+        </div>
+      `;
+      lucide.createIcons();
+    }
+
+    // Role, Currency, Language Setters
+    function setRole(roleVal) {
+      state.role = roleVal;
+      if (roleVal === 'buyer') state.selectedCard = null;
+      renderApp();
+    }
+
+    function changeLanguage(langVal) {
+      state.lang = langVal;
+      renderApp();
+    }
+
+    function changeCurrency(currencyVal) {
+      state.currency = currencyVal;
+      renderApp();
+    }
+
+    function resetBuyerSearch() {
+      state.selectedCard = null;
+      state.searchQuery = '';
+      state.selectedDistrict = 'all';
+      state.selectedLanguage = 'all';
+      state.selectedCondition = 'all';
+      state.selectedMerchantType = 'all';
+      renderApp();
+    }
+
+    // Membership Port Management (Phone/Email verification tabs)
+    function openAuthModal() {
+      state.authModalOpen = true;
+      state.authStep = 1;
+      state.authMethod = 'phone';
+      state.inputPhone = '';
+      state.inputEmail = '';
+      state.inputOTP = '';
+      state.inputNickname = '';
+      renderModals();
+    }
+
+    function switchAuthTab(method) {
+      state.authMethod = method;
+      renderModals();
+    }
+
+    function handleSendOTP() {
+      // 1. HoneyPot Validation
+      const honeypotVal = document.getElementById('auth_username_hp')?.value;
+      if (honeypotVal) {
+        console.warn('Bot access registered by honeyPot intercept.');
+        return;
+      }
+
+      // 2. Cloudflare Turnstile human confirmation
+      const turnstileChecked = document.getElementById('cf-turnstile-mock')?.checked;
+      if (!turnstileChecked) {
+        alert(state.lang === 'en' ? 'Turnstile verification failed. Please check the checkbox.' : '安全驗證失敗：請確認勾選 Turnstile 人機驗證！');
+        return;
+      }
+
+      // 3. Inputs
+      const targetVal = state.authMethod === 'phone' 
+        ? document.getElementById('reg-phone')?.value 
+        : document.getElementById('reg-email')?.value;
+
+      if (!targetVal) {
+        alert(state.lang === 'en' ? 'Please fill in credentials.' : '請輸入正確的註冊資料！');
+        return;
+      }
+
+      state.authStep = 2;
+      triggerToast(state.lang === 'en' ? "🔑 Code 123456 sent!" : "🔑 模擬驗證碼 [123456] 已發送！");
+      renderModals();
+    }
+
+    function verifyAndRegisterUser() {
+      // 1. Verify checkbox validation
+      const agreeChecked = document.getElementById('agree-terms')?.checked;
+      if (!agreeChecked) {
+        alert(state.lang === 'en' ? 'You must accept the terms first.' : '您必須先閱讀並勾選同意《服務條款與免責聲明》！');
+        return;
+      }
+
+      const otpCodeInput = document.getElementById('reg-otp')?.value;
+      const nicknameInput = document.getElementById('reg-name')?.value;
+
+      if (otpCodeInput !== '123456') {
+        alert(state.lang === 'en' ? 'Incorrect verification code. Use 123456.' : '驗證碼錯誤！請輸入預設代碼 123456');
+        return;
+      }
+
+      if (!nicknameInput) {
+        alert(state.lang === 'en' ? 'Please choose a nickname.' : '請輸入會員暱稱！');
+        return;
+      }
+
+      state.currentUser = {
+        name: nicknameInput,
+        credentials: state.authMethod === 'phone' ? state.inputPhone : state.inputEmail,
+        displayId: state.authMethod === 'phone' ? 'HK+852' : 'E-Mail',
+        role: 'buyer'
+      };
+
+      state.authModalOpen = false;
+      triggerToast(state.lang === 'en' ? "🎉 Welcome, registration complete!" : "🎉 歡迎加入 PokeCardHK！會員安全認證成功。");
+      renderApp();
+    }
+
+    function handleLogout() {
+      state.currentUser = null;
+      triggerToast(state.lang === 'en' ? "Logged out successfully." : "已成功登出會員帳號。");
+      renderApp();
+    }
+
+    // Voice recognition search execution
+    function runVoiceSearch() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        triggerToast("瀏覽器不支援 Web Speech 語音辨識功能。");
+        return;
+      }
+      if (state.isListening) return;
+
+      const recognition = new SpeechRecognition();
+      recognition.lang = state.lang === 'en' ? 'en-US' : 'zh-HK';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = () => {
+        state.isListening = true;
+        renderApp();
+        triggerToast("🎤 正在聆聽，請說出卡牌名稱...");
+      };
+
+      recognition.onerror = () => {
+        state.isListening = false;
+        renderApp();
+        triggerToast("⚠️ 語音識別失敗，請嘗試手動輸入。");
+      };
+
+      recognition.onend = () => {
+        state.isListening = false;
+        renderApp();
+      };
+
+      recognition.onresult = (e) => {
+        const text = e.results[0][0].transcript.replace(/[.。!！?？]/g, '');
+        state.searchQuery = text;
+        renderApp();
+        triggerToast(`語音辨識結果: "${text}"`);
+      };
+
+      recognition.start();
+    }
+
+    // Mock Image OCR capture scanning
+    function runImageOCRScan(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      triggerToast("📸 AI 智慧卡圖識別中...");
+      setTimeout(() => {
+        // Randomly identify one of our main cards
+        const randomCard = MASTER_CARDS[Math.floor(Math.random() * MASTER_CARDS.length)];
+        state.selectedCard = randomCard;
+        state.searchQuery = randomCard.name[state.lang] || randomCard.name['zh-HK'];
+        renderApp();
+        triggerToast(`✅ 成功辨識卡片: ${randomCard.name[state.lang] || randomCard.name['zh-HK']}`);
+      }, 1500);
+    }
+
+    // Dynamic Beautiful TCG Vector Card HTML generator (avoid 404 image errors)
+    function getTcgCardArtHTML(card) {
+      let gradient = "from-orange-500 to-red-600";
+      let elementSymbol = "🔥";
+      let characterSvg = "";
+
+      if (card.type === "fire") { 
+        gradient = "from-red-500 via-orange-600 to-amber-700"; 
+        elementSymbol = "🔥";
+        characterSvg = `<path d="M12 2s.5 2.5 1.5 3.5c1 1 2 2.5 1.5 4.5-.5 2-2.5 3-2.5 5s1 2.5 2 2.5" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" fill="none" stroke-linecap="round"/>`;
+      } else if (card.type === "lightning") { 
+        gradient = "from-yellow-400 via-amber-500 to-yellow-600"; 
+        elementSymbol = "⚡️";
+        characterSvg = `<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="rgba(255,255,255,0.8)" stroke-width="1.5" fill="none" stroke-linejoin="round"/>`;
+      } else if (card.type === "grass") { 
+        gradient = "from-emerald-500 via-green-600 to-teal-800"; 
+        elementSymbol = "🌿";
+        characterSvg = `<path d="M12 2c0 0-4 4-4 8s4 6 4 12c0 0 4-8 4-12" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" fill="none"/>`;
+      } else if (card.type === "water") { 
+        gradient = "from-blue-500 via-cyan-600 to-slate-900"; 
+        elementSymbol = "💧";
+        characterSvg = `<path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" fill="none"/>`;
+      } else if (card.type === "psychic") { 
+        gradient = "from-purple-600 via-pink-600 to-indigo-900"; 
+        elementSymbol = "🔮";
+        characterSvg = `<circle cx="12" cy="12" r="7" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" fill="none"/>`;
+      } else if (card.type === "dragon") { 
+        gradient = "from-yellow-600 via-amber-500 to-amber-950"; 
+        elementSymbol = "🐉";
+        characterSvg = `<path d="M12 4c-4 0-6 2-6 5s3 4 5 7" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" fill="none"/>`;
+      } else if (card.type === "darkness") { 
+        gradient = "from-slate-800 via-indigo-950 to-slate-950"; 
+        elementSymbol = "👁️";
+        characterSvg = `<path d="M12 3a9 9 0 1 0 9 9h-9V3z" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" fill="none"/>`;
+      } else if (card.type === "colorless") { 
+        gradient = "from-stone-400 via-slate-300 to-stone-600"; 
+        elementSymbol = "⭐";
+        characterSvg = `<path d="M12 2l3.09 6.26L22 9.27l-5 4.87" stroke="rgba(255,255,255,0.8)" stroke-width="1.5" fill="none"/>`;
+      } else if (card.type === "supporter") { 
+        gradient = "from-pink-300 via-purple-400 to-indigo-500"; 
+        elementSymbol = "👔";
+        characterSvg = `<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" fill="none"/>`;
+      }
+
+      const hpText = card.hp ? `<span class="bg-slate-950/70 backdrop-blur text-white text-[10px] font-black px-2 py-0.5 rounded-full">${card.hp} HP</span>` : "";
+
+      return `
+        <div class="relative w-full h-full bg-gradient-to-br ${gradient} rounded-2xl p-4 flex flex-col justify-between overflow-hidden shadow-2xl transition duration-500 group-hover:scale-[1.03]">
+          <div class="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/10 to-white/0 transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out pointer-events-none"></div>
+          
+          <div class="flex justify-between items-start z-10">
+            <span class="bg-slate-950/80 border border-white/10 text-slate-300 text-[9px] font-black font-mono px-2 py-0.5 rounded backdrop-blur">
+              ${card.id}
+            </span>
+            <div class="flex gap-1 items-center">
+              ${hpText}
+              <span class="text-xs">${elementSymbol}</span>
+            </div>
+          </div>
+
+          <div class="absolute inset-0 flex items-center justify-center opacity-35 z-0">
+            <svg class="w-24 h-24" viewBox="0 0 24 24" fill="none">
+              ${characterSvg}
+            </svg>
+          </div>
+
+          <div class="space-y-1.5 z-10">
+            <div class="flex items-center gap-1.5">
+              <span class="bg-yellow-400 text-slate-950 text-[9px] font-black px-1.5 py-0.5 rounded tracking-wider shadow">
+                ${card.rarity}
+              </span>
+              <span class="text-white/80 font-mono text-[9px]">${card.number}</span>
+            </div>
+            <h4 class="font-black text-xs sm:text-sm text-white drop-shadow-md leading-tight tracking-tight">
+              ${card.name[state.lang] || card.name['zh-HK']}
+            </h4>
+          </div>
+        </div>
+      `;
+    }
+
+    // App core renderer
+    function renderApp() {
+      // Header and static configurations
+      document.getElementById('site-subtitle').innerText = t('subtitle');
+      document.getElementById('lang-select').value = state.lang;
+      document.getElementById('currency-select').value = state.currency;
+
+      // Status indicator
+      const authContainer = document.getElementById('auth-status-container');
+      if (state.currentUser) {
+        authContainer.innerHTML = `
+          <div class="flex items-center gap-2 px-2.5 py-1 text-slate-200">
+            <div class="w-6 h-6 rounded-full bg-yellow-500 flex items-center justify-center text-[10px] font-black text-slate-950 shadow-md">
+              ${state.currentUser.name.charAt(0).toUpperCase()}
+            </div>
+            <div class="text-left hidden sm:block">
+              <p class="text-[9px] text-yellow-400 font-extrabold flex items-center gap-0.5">
+                <i data-lucide="shield-check" class="w-3 h-3"></i> ${t('verifiedMember')}
+              </p>
+              <p class="text-xs text-slate-100 font-bold truncate max-w-[80px]">${state.currentUser.name}</p>
+            </div>
+            <button onclick="handleLogout()" class="p-1 text-slate-400 hover:text-red-400 transition" title="登出">
+              <i data-lucide="log-out" class="w-4 h-4"></i>
+            </button>
+          </div>
+        `;
+      } else {
+        authContainer.innerHTML = `
+          <button onclick="openAuthModal()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-yellow-400 hover:text-yellow-300 hover:bg-slate-800/50 transition border border-yellow-500/30">
+            <i data-lucide="user" class="w-4 h-4 text-yellow-400"></i>
+            <span>${t('loginRegister')}</span>
+          </button>
+        `;
+      }
+
+      // Role button switching styles
+      const buyerBtn = document.getElementById('role-buyer-btn');
+      const sellerBtn = document.getElementById('role-seller-btn');
+
+      buyerBtn.className = `flex-1 sm:flex-none flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-300 ${
+        state.role === 'buyer'
+          ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-slate-950 shadow-md'
+          : 'text-slate-400 hover:text-slate-100'
+      }`;
+      buyerBtn.innerHTML = `<i data-lucide="search" class="w-3.5 h-3.5"></i> ${t('buyerMode')}`;
+
+      sellerBtn.className = `flex-1 sm:flex-none flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-300 ${
+        state.role === 'seller'
+          ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md'
+          : 'text-slate-400 hover:text-slate-100'
+      }`;
+      sellerBtn.innerHTML = `<i data-lucide="store" class="w-3.5 h-3.5"></i> ${t('sellerMode')}`;
+
+      // Refresh marquee structure and core content area
+      renderLiveMarquee();
+      renderMainContent();
+      renderModals();
+    }
+
+    // Dynamic filtration handling
+    function setOfferFilter(field, value) {
+      state[field] = value;
+      renderOfferListing();
+    }
+
+    // Selector back to inventory homepage view
+    function backToHome() {
+      state.selectedCard = null;
+      renderApp();
+    }
+
+    function renderMainContent() {
+      const container = document.getElementById('main-content');
+      
+      // Determine View Layout
+      if (state.role === 'buyer') {
+        if (!state.selectedCard) {
+          renderBuyerHomeView(container);
+        } else {
+          renderBuyerDetailView(container);
+        }
+      } else {
+        renderSellerDashboardView(container);
+      }
+      lucide.createIcons();
+    }
+
+    // Render Buyer Homepage Grid Layout
+    function renderBuyerHomeView(container) {
+      // Catalog matching
+      const query = state.searchQuery.trim().toLowerCase();
+      const matchedCards = MASTER_CARDS.filter(card => {
+        const cardTitle = (card.name[state.lang] || card.name['zh-HK'] || '').toLowerCase();
+        return cardTitle.includes(query) || card.id.toLowerCase().includes(query) || card.set.toLowerCase().includes(query);
+      });
+
+      let catalogHTML = '';
+      if (matchedCards.length === 0) {
+        catalogHTML = `
+          <div class="col-span-full bg-slate-900/50 rounded-2xl p-10 text-center border border-slate-800">
+            <i data-lucide="alert-circle" class="w-12 h-12 text-slate-600 mx-auto mb-3"></i>
+            <p class="text-slate-400 font-semibold">找不到任何匹配的閃卡</p>
+            <p class="text-slate-500 text-xs mt-1">試試輸入 「噴火龍」, 「皮卡丘」, 「伊布」 或 「SAR」</p>
+          </div>
+        `;
+      } else {
+        matchedCards.forEach(card => {
+          const shopOffers = state.inventory.filter(inv => inv.cardId === card.id && inv.status === 'active' && inv.qty > 0);
+          const hasOffer = shopOffers.length > 0;
+          const minPrice = hasOffer ? Math.min(...shopOffers.map(o => o.price)) : null;
+
+          const actionLabel = hasOffer ? `看 ${shopOffers.length} 間商家報價` : "查看詳情";
+          const pricingTextHTML = hasOffer 
+            ? `<p class="text-base font-black text-emerald-400">${formatConvertedPrice(minPrice)} <span class="text-[10px] font-normal text-slate-400">起</span></p>`
+            : `<p class="text-xs font-semibold text-slate-500">暫時缺貨</p>`;
+
+          catalogHTML += `
+            <div onclick="selectProductCard('${card.id}')" class="bg-slate-900 rounded-2xl border border-slate-800 hover:border-slate-700 p-4 cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-xl group flex flex-col justify-between">
+              <div class="space-y-4">
+                <div class="h-44 rounded-xl relative overflow-hidden">
+                  ${getTcgCardArtHTML(card)}
+                </div>
+                <div>
+                  <p class="text-slate-400 text-xs line-clamp-1">${card.set}</p>
+                </div>
+              </div>
+
+              <div class="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between">
+                <div>
+                  <p class="text-[9px] text-slate-500">全港最低現貨價</p>
+                  ${pricingTextHTML}
+                </div>
+                <div class="flex items-center gap-1 text-[11px] text-yellow-400 font-bold group-hover:underline">
+                  ${actionLabel}
+                  <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+      }
+
+      // News Cards Integration
+      let newsGridHTML = '';
+      MOCK_NEWS.forEach(news => {
+        newsGridHTML += `
+          <div onclick="openNewsDetail(${news.id})" class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden hover:border-slate-600 transition cursor-pointer group flex flex-col justify-between">
+            <div style="background: ${news.img};" class="w-full h-32 flex items-center justify-center relative overflow-hidden">
+              <i data-lucide="newspaper" class="w-10 h-10 text-white/25 absolute"></i>
+              <div class="absolute inset-0 bg-black/20 group-hover:bg-transparent transition"></div>
+            </div>
+            <div class="p-4 space-y-2">
+              <span class="${news.tagColor} text-[10px] font-black px-2 py-0.5 rounded uppercase">${news.tag}</span>
+              <h4 class="text-sm font-bold text-slate-200 leading-snug line-clamp-2">${news.title}</h4>
+              <p class="text-[10px] text-slate-500">更新於：${news.date}</p>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = `
+        <!-- Hero Banner with OCR and Turnstile security indicators -->
+        <div class="premium-glow relative bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 rounded-3xl p-6 sm:p-10 border border-yellow-500/20 overflow-hidden shadow-2xl">
+          <div class="absolute top-0 right-0 w-96 h-96 bg-yellow-500/5 rounded-full blur-3xl pointer-events-none"></div>
+          
+          <div class="max-w-2xl relative z-10 space-y-4">
+            <span class="bg-slate-800 text-slate-300 text-xs font-semibold px-3 py-1.5 rounded-full border border-slate-700">
+              ${t('heroTag')}
+            </span>
+            <h2 class="text-3xl sm:text-4xl font-black leading-tight">
+              ${t('heroTitle')}<br/>
+              <span class="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-500">${t('heroSubtitle')}</span>
+            </h2>
+            
+            <!-- Modern Integrated Search Engine -->
+            <div class="flex flex-col sm:flex-row gap-3 pt-4">
+              <div class="relative flex-1">
+                <input 
+                  type="text" 
+                  id="mainSearchInput" 
+                  value="${state.searchQuery}"
+                  oninput="state.searchQuery = this.value;"
+                  onkeypress="handleEnterKeyPress(event)"
+                  placeholder="${t('searchPlaceholder')}" 
+                  class="w-full h-14 bg-slate-950 border-2 border-slate-700 focus:border-yellow-400 rounded-xl pl-12 pr-12 text-sm focus:outline-none transition"
+                />
+                <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5"></i>
+                <button onclick="runVoiceSearch()" class="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-yellow-400 transition" title="語音搜尋">
+                  <i data-lucide="mic" class="w-5 h-5 ${state.isListening ? 'text-red-500 animate-pulse' : ''}"></i>
+                </button>
+              </div>
+              
+              <div class="flex gap-2">
+                <button onclick="executeGlobalCardSearch()" class="bg-yellow-500 hover:bg-yellow-400 text-slate-950 px-6 h-14 rounded-xl font-bold transition flex items-center gap-1 text-sm">
+                  <i data-lucide="search" class="w-4 h-4"></i> ${t('searchBtn')}
+                </button>
+
+                <!-- Camera / Image OCR Upload -->
+                <label class="bg-slate-900 border border-slate-700 hover:bg-slate-800 text-white px-4 h-14 rounded-xl flex items-center justify-center cursor-pointer transition">
+                  <i data-lucide="camera" class="w-5 h-5 text-yellow-400"></i>
+                  <input type="file" accept="image/*" onchange="runImageOCRScan(event)" class="hidden" />
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dynamic Live Grid for Trending and Top Gainers -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Recent Gainers -->
+          <div class="bg-slate-900/50 p-6 rounded-3xl border border-slate-800 space-y-4">
+            <h3 class="text-lg font-black flex items-center gap-2 text-slate-100">
+              <i data-lucide="trending-up" class="w-5 h-5 text-emerald-400"></i> ${t('gainersTitle')} <span class="text-xs text-slate-500 font-normal ml-2">(${t('gainerChange')})</span>
+            </h3>
+            <div class="space-y-3">
+              <div onclick="selectProductCard('SV4a-308')" class="flex items-center justify-between bg-slate-950 p-3 rounded-xl border border-slate-800 hover:border-slate-700 transition cursor-pointer">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center text-xs font-black shadow-inner">SV4a</div>
+                  <div>
+                    <h4 class="font-bold text-sm text-slate-200">噴火龍 ex (SAR)</h4>
+                    <p class="text-xs text-slate-500 mt-0.5">底價: HK$810</p>
+                  </div>
+                </div>
+                <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded text-xs font-black">▲ +25.4%</span>
+              </div>
+              
+              <div onclick="selectProductCard('SV6a-086')" class="flex items-center justify-between bg-slate-950 p-3 rounded-xl border border-slate-800 hover:border-slate-700 transition cursor-pointer">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center text-xs font-black shadow-inner">SV6a</div>
+                  <div>
+                    <h4 class="font-bold text-sm text-slate-200">厄鬼褓 ex (SAR)</h4>
+                    <p class="text-xs text-slate-500 mt-0.5">底價: HK$270</p>
+                  </div>
+                </div>
+                <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded text-xs font-black">▲ +18.2%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hot searches -->
+          <div class="bg-slate-900/50 p-6 rounded-3xl border border-slate-800 space-y-4">
+            <h3 class="text-lg font-black flex items-center gap-2 text-slate-100">
+              <i data-lucide="flame" class="w-5 h-5 text-orange-500 fill-orange-500"></i> ${t('trendingTitle')} <span class="text-xs text-slate-500 font-normal ml-2">(${t('trendingSub')})</span>
+            </h3>
+            <div class="space-y-3">
+              <div onclick="selectProductCard('S8b-245')" class="flex items-center justify-between bg-slate-950 p-3 rounded-xl border border-slate-800 hover:border-slate-700 transition cursor-pointer">
+                <div class="flex items-center gap-3">
+                  <span class="font-black text-slate-700 text-lg w-6 text-center italic">1</span>
+                  <div class="w-10 h-10 bg-slate-800 rounded-full flex items-center justify-center text-base">🌙</div>
+                  <h4 class="font-bold text-sm text-slate-200">月亮伊布 VMAX</h4>
+                </div>
+                <span class="text-slate-400 text-xs flex items-center gap-1"><i data-lucide="search" class="w-3.5 h-3.5"></i> 1,240</span>
+              </div>
+              <div onclick="selectProductCard('SV9-130')" class="flex items-center justify-between bg-slate-950 p-3 rounded-xl border border-slate-800 hover:border-slate-700 transition cursor-pointer">
+                <div class="flex items-center gap-3">
+                  <span class="font-black text-slate-700 text-lg w-6 text-center italic">2</span>
+                  <div class="w-10 h-10 bg-slate-800 rounded-full flex items-center justify-center text-base">🎀</div>
+                  <h4 class="font-bold text-sm text-slate-200">伊布 (Eevee) SAR</h4>
+                </div>
+                <span class="text-slate-400 text-xs flex items-center gap-1"><i data-lucide="search" class="w-3.5 h-3.5"></i> 985</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Catalogue grid section -->
+        <div class="space-y-4">
+          <h3 class="text-xl font-bold flex items-center gap-2">
+            <i data-lucide="layers" class="w-5 h-5 text-yellow-400"></i>
+            官方數據庫卡片對照
+          </h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            ${catalogHTML}
+          </div>
+        </div>
+
+        <!-- Global TCG news dynamic feed -->
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xl font-black text-slate-100 flex items-center gap-2">
+              <i data-lucide="newspaper" class="w-5 h-5 text-blue-400"></i>
+              ${t('newsTitle')}
+            </h3>
+            <button class="text-xs text-yellow-400 hover:text-yellow-300 font-bold transition">${t('viewAll')}</button>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            ${newsGridHTML}
+          </div>
+        </div>
+      `;
+    }
+
+    // Enter Key Search trigger handler
+    function handleEnterKeyPress(e) {
+      if (e.key === 'Enter') {
+        executeGlobalCardSearch();
+      }
+    }
+
+    function executeGlobalCardSearch() {
+      const inputVal = document.getElementById('mainSearchInput')?.value;
+      state.searchQuery = inputVal || '';
+      renderMainContent();
+    }
+
+    function selectProductCard(cardId) {
+      const found = MASTER_CARDS.find(c => c.id === cardId);
+      if (found) {
+        state.selectedCard = found;
+        renderApp();
+      }
+    }
+
+    // Buyer detailed Card compare screen with dynamic filters
+    function renderBuyerDetailView(container) {
+      const card = state.selectedCard;
+
+      container.innerHTML = `
+        <div class="space-y-6 animate-fade-in">
+          <button onclick="backToHome()" class="flex items-center gap-2 text-xs text-slate-400 hover:text-white transition bg-slate-900 px-4 py-2.5 rounded-xl border border-slate-800">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i> ${state.lang === 'en' ? "Back to Catalog" : "← 返回搜尋列表"}
+          </button>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Left Panel Card Graphic Display -->
+            <div class="md:col-span-1 space-y-6">
+              <div class="aspect-[3/4] rounded-3xl relative overflow-hidden shadow-2xl border-4 border-slate-800">
+                ${getTcgCardArtHTML(card)}
+              </div>
+            </div>
+
+            <!-- Right Panel Local Shop Offers with Filters -->
+            <div class="md:col-span-2 space-y-6">
+              <div class="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-6">
+                <div>
+                  <h3 class="text-xl font-extrabold text-slate-100 flex items-center gap-2">
+                    <i data-lucide="layers" class="w-5 h-5 text-yellow-400"></i>
+                    全港實時格價列表
+                  </h3>
+                  <p class="text-xs text-slate-400 mt-1">已為您自動按【價格由低至高】排序。最平價格優先顯示。</p>
+                </div>
+
+                <!-- Live Advance Filtering Dashboard -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 bg-slate-950 p-4 rounded-2xl border border-slate-800/80">
+                  <div class="space-y-1.5">
+                    <label class="text-[11px] text-slate-500 font-bold uppercase">${t('filterMerchantType')}</label>
+                    <select id="filter-merchant-type" onchange="setOfferFilter('selectedMerchantType', this.value)" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg p-2 focus:outline-none focus:border-yellow-400 text-slate-200">
+                      <option value="all">${t('allMerchantTypes')}</option>
+                      <option value="physical">${t('physicalShop')}</option>
+                      <option value="online">${t('onlineMerchant')}</option>
+                    </select>
+                  </div>
+
+                  <div class="space-y-1.5">
+                    <label class="text-[11px] text-slate-500 font-bold uppercase">${t('filterDistrict')}</label>
+                    <select id="filter-district" onchange="setOfferFilter('selectedDistrict', this.value)" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg p-2 focus:outline-none focus:border-yellow-400 text-slate-200">
+                      <option value="all">${t('allDistricts')}</option>
+                      <option value="旺角">旺角 (Mong Kok)</option>
+                      <option value="觀塘">觀塘 (Kwun Tong)</option>
+                      <option value="沙田">沙田 (Sha Tin)</option>
+                    </select>
+                  </div>
+
+                  <div class="space-y-1.5">
+                    <label class="text-[11px] text-slate-500 font-bold uppercase">${t('filterLanguage')}</label>
+                    <select id="filter-language" onchange="setOfferFilter('selectedLanguage', this.value)" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg p-2 focus:outline-none focus:border-yellow-400 text-slate-200">
+                      <option value="all">${t('allLanguages')}</option>
+                      <option value="Japanese">Japanese</option>
+                      <option value="Traditional Chinese">Traditional Chinese</option>
+                      <option value="English">English</option>
+                    </select>
+                  </div>
+
+                  <div class="space-y-1.5">
+                    <label class="text-[11px] text-slate-500 font-bold uppercase">${t('filterCondition')}</label>
+                    <select id="filter-condition" onchange="setOfferFilter('selectedCondition', this.value)" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg p-2 focus:outline-none focus:border-yellow-400 text-slate-200">
+                      <option value="all">${t('allConditions')}</option>
+                      <option value="Near Mint (NM)">Near Mint (NM)</option>
+                      <option value="Lightly Played (LP)">Lightly Played (LP)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Offers rendering container -->
+                <div id="offers-list-container" class="space-y-4"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Assign selected filter variables to selectors
+      document.getElementById('filter-merchant-type').value = state.selectedMerchantType;
+      document.getElementById('filter-district').value = state.selectedDistrict;
+      document.getElementById('filter-language').value = state.selectedLanguage;
+      document.getElementById('filter-condition').value = state.selectedCondition;
+
+      renderOfferListing();
+    }
+
+    // Filters and sorting of matching inventory listings
+    function renderOfferListing() {
+      const container = document.getElementById('offers-list-container');
+      if (!container) return;
+
+      const card = state.selectedCard;
+      const matchedListings = state.inventory
+        .filter(item => item.cardId === card.id && item.status === 'active' && item.qty > 0)
+        .map(item => {
+          const shopObj = state.shops.find(sh => sh.id === item.shopId);
+          return { ...item, shop: shopObj };
+        })
+        .filter(offer => {
+          if (!offer.shop) return false;
+          const matchMerchant = state.selectedMerchantType === 'all' || offer.shop.shopType === state.selectedMerchantType;
+          const matchDistrict = state.selectedDistrict === 'all' || offer.shop.district === state.selectedDistrict;
+          const matchLang = state.selectedLanguage === 'all' || offer.language === state.selectedLanguage;
+          const matchCond = state.selectedCondition === 'all' || offer.condition === state.selectedCondition;
+          return matchMerchant && matchDistrict && matchLang && matchCond;
+        })
+        .sort((a, b) => a.price - b.price);
+
+      if (matchedListings.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-10 bg-slate-950/40 rounded-2xl border border-slate-800/60 text-slate-500 text-xs">
+            <i data-lucide="info" class="w-8 h-8 mx-auto mb-2 opacity-30"></i>
+            暫時沒有符合篩選條件的報價
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      let innerHTML = '';
+      matchedListings.forEach((offer, idx) => {
+        const cheapestTagHTML = idx === 0 ? `<div class="absolute top-0 right-0 bg-yellow-400 text-slate-950 font-black text-[9px] px-2 py-0.5 rounded-bl uppercase tracking-wider">${t('cheapestTag')}</div>` : '';
+        const merchantBadgeHTML = offer.shop.shopType === 'physical' 
+          ? `<span class="bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-1"><i data-lucide="building-2" class="w-3 h-3"></i>${t('physicalShop')}</span>`
+          : `<span class="bg-purple-500/10 text-purple-400 border border-purple-500/20 text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-1"><i data-lucide="laptop" class="w-3 h-3"></i>${t('onlineMerchant')}</span>`;
+
+        innerHTML += `
+          <div class="bg-slate-950 p-4 rounded-2xl border transition relative ${idx === 0 ? 'border-yellow-500/50 shadow-lg shadow-yellow-500/5 overflow-hidden' : 'border-slate-800 hover:border-slate-700'}">
+            ${cheapestTagHTML}
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div class="space-y-1.5">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="font-extrabold text-slate-100">${offer.shop.name}</span>
+                  ${merchantBadgeHTML}
+                  <span class="bg-slate-900 border border-slate-800 px-1.5 py-0.5 rounded text-[10px] text-yellow-400 font-bold">★ ${offer.shop.rating.toFixed(1)}</span>
+                </div>
+                
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
+                  <span class="flex items-center gap-1 text-amber-400 font-medium">
+                    <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
+                    ${offer.shop.district}
+                  </span>
+                  <span>•</span>
+                  <span>${t('conditionLabel')}: <strong class="text-slate-200">${offer.condition}</strong></span>
+                  <span>•</span>
+                  <span>${t('langLabel')}: <strong class="text-slate-200">${offer.language}</strong></span>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-800">
+                <div class="text-left sm:text-right">
+                  <div class="text-[10px] text-slate-500">${t('stockLabel')}: ${offer.qty} ${t('pcs')}</div>
+                  <div class="text-xl font-black text-emerald-400">
+                    ${formatConvertedPrice(offer.price)}
+                  </div>
+                </div>
+
+                <button onclick="handleContactSellerTrigger('${offer.shop.id}')" class="bg-slate-900 hover:bg-yellow-400 hover:text-slate-950 text-slate-200 border border-slate-700 hover:border-yellow-400 px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow">
+                  <i data-lucide="phone" class="w-3.5 h-3.5"></i>
+                  ${t('contactShop')}
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = innerHTML;
+      lucide.createIcons();
+    }
+
+    function handleContactSellerTrigger(shopId) {
+      if (!state.currentUser) {
+        alert(state.lang === 'en' ? "Please register / log in first to view merchant contact info!" : "🔒 為了保障雙方交易安全，請先註冊或登入會員帳戶！");
+        openAuthModal();
+        return;
+      }
+      const shopObj = state.shops.find(s => s.id === shopId);
+      if (shopObj) {
+        state.contactModalShop = shopObj;
+        renderModals();
+      }
+    }
+
+    // Dynamic Seller Dashboard Workspace
+    function renderSellerDashboardView(container) {
+      const activeShop = state.shops[0]; // Simple seller interface uses Mong Kok Valley shop
+      
+      let cardOptions = '';
+      MASTER_CARDS.forEach(card => {
+        cardOptions += `<option value="${card.id}">[${card.id}] ${card.name[state.lang] || card.name['zh-HK']}</option>`;
+      });
+
+      const shopInventory = state.inventory
+        .filter(item => item.shopId === activeShop.id)
+        .map(item => {
+          const cardObj = MASTER_CARDS.find(c => c.id === item.cardId);
+          return { ...item, card: cardObj };
+        });
+
+      let inventoryListHTML = '';
+      if (shopInventory.length === 0) {
+        inventoryListHTML = `
+          <div class="py-12 text-center border-2 border-dashed border-slate-800 rounded-2xl text-slate-500 text-xs">
+            目前無任何上架商品，請使用左側表單進行發布上架！
+          </div>
+        `;
+      } else {
+        shopInventory.forEach(item => {
+          if (!item.card) return;
+          const statusBtnClass = item.status === 'active' 
+            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20' 
+            : 'bg-slate-900 text-slate-500 border-slate-800 hover:bg-slate-800';
+
+          inventoryListHTML += `
+            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div class="space-y-1">
+                <span class="text-[10px] bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded font-bold">${item.cardId}</span>
+                <h4 class="font-extrabold text-sm text-slate-200">${item.card.name[state.lang] || item.card.name['zh-HK']}</h4>
+                <div class="flex items-center gap-3 text-xs text-slate-400">
+                  <span class="text-amber-400 font-semibold">${item.language}</span>
+                  <span>•</span>
+                  <span>品相：${item.condition}</span>
+                </div>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-4 w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-900 justify-between sm:justify-end">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-xs text-slate-500">售價:</span>
+                  <div class="relative w-24">
+                    <span class="absolute left-1.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-500">${CURRENCY_SYMBOLS[state.currency]}</span>
+                    <input
+                      type="number"
+                      value="${Math.round(item.price * EXCHANGE_RATES[state.currency])}"
+                      onchange="updateListingPrice('${item.id}', this.value)"
+                      class="w-full bg-slate-900 border border-slate-800 rounded py-1 pl-5 pr-1.5 text-xs text-emerald-400 font-bold focus:outline-none text-center"
+                    />
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-1.5">
+                  <span class="text-xs text-slate-500">數量:</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value="${item.qty}"
+                    onchange="updateListingQty('${item.id}', this.value)"
+                    class="w-12 bg-slate-900 border border-slate-800 rounded px-1 py-1 text-xs text-slate-200 font-semibold focus:outline-none text-center"
+                  />
+                </div>
+
+                <button onclick="toggleListingState('${item.id}')" class="px-2.5 py-1 rounded text-[11px] font-bold border transition ${statusBtnClass}">
+                  ${item.status === 'active' ? t('inStockStatus') : t('outStockStatus')}
+                </button>
+                <button onclick="deleteListingItem('${item.id}')" class="text-xs text-red-500 hover:text-red-400 p-1 transition">${t('deleteListing')}</button>
+              </div>
+            </div>
+          `;
+        });
+      }
+
+      container.innerHTML = `
+        <div class="space-y-8 animate-fade-in">
+          <!-- Seller Shop Info Header -->
+          <div class="bg-slate-900 p-6 rounded-3xl border border-slate-800">
+            <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div>
+                <span class="bg-blue-500/10 text-blue-400 text-xs font-semibold px-3 py-1.5 rounded-full border border-blue-500/20">
+                  ${t('sellerPortal')}
+                </span>
+                <h2 class="text-xl font-bold mt-2">當前管理舖頭: ${activeShop.name}</h2>
+                <p class="text-xs text-slate-400 mt-1 flex items-center gap-1"><i data-lucide="map-pin" class="w-3.5 h-3.5"></i> ${activeShop.address}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Add Inventory item Form -->
+            <div class="lg:col-span-1">
+              <div class="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4">
+                <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2">
+                  <i data-lucide="plus" class="w-5 h-5 text-blue-400"></i>
+                  商品極速發布
+                </h3>
+                
+                <form onsubmit="handleSellerPublish(event)" class="space-y-4">
+                  <div class="space-y-1.5">
+                    <label class="text-xs text-slate-400 font-semibold block">選擇官方卡片</label>
+                    <select id="new-card-id" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm focus:outline-none focus:border-blue-500 cursor-pointer">
+                      ${cardOptions}
+                    </select>
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-3">
+                    <div class="space-y-1.5">
+                      <label class="text-xs text-slate-400 font-semibold block">卡片語言</label>
+                      <select id="new-lang" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs focus:outline-none cursor-pointer">
+                        <option value="Japanese">Japanese</option>
+                        <option value="Traditional Chinese">Traditional Chinese</option>
+                        <option value="English">English</option>
+                      </select>
+                    </div>
+                    <div class="space-y-1.5">
+                      <label class="text-xs text-slate-400 font-semibold block">品相要求</label>
+                      <select id="new-cond" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs focus:outline-none cursor-pointer">
+                        <option value="Near Mint (NM)">Near Mint (NM)</option>
+                        <option value="Lightly Played (LP)">Lightly Played (LP)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-3">
+                    <div class="space-y-1.5">
+                      <label class="text-xs text-slate-400 font-semibold block">${t('priceLabel').replace('{cur}', state.currency)}</label>
+                      <div class="relative">
+                        <input type="number" id="new-price" placeholder="例如: 850" required class="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 pl-8 pr-3 text-sm focus:outline-none focus:border-blue-500" />
+                        <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-bold">${CURRENCY_SYMBOLS[state.currency]}</span>
+                      </div>
+                    </div>
+                    <div class="space-y-1.5">
+                      <label class="text-xs text-slate-400 font-semibold block">${t('stockQty')}</label>
+                      <input type="number" id="new-qty" min="1" required value="1" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm focus:outline-none focus:border-blue-500" />
+                    </div>
+                  </div>
+
+                  <button type="submit" class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black py-3 rounded-xl text-sm transition shadow-md flex items-center justify-center gap-2">
+                    <i data-lucide="check" class="w-4 h-4"></i>
+                    ${t('publishBtn')}
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            <!-- Current Inventory Live Panel -->
+            <div class="lg:col-span-2">
+              <div class="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4">
+                <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2">
+                  <i data-lucide="database" class="w-5 h-5 text-blue-400"></i>
+                  ${t('myInventoryTitle').replace('{count}', shopInventory.length)}
+                </h3>
+                <div class="space-y-3">
+                  ${inventoryListHTML}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Listing Management Handlers
+    function updateListingPrice(itemId, priceVal) {
+      const targetHkd = Number(priceVal) / EXCHANGE_RATES[state.currency];
+      const item = state.inventory.find(inv => inv.id === itemId);
+      if (item) {
+        item.price = targetHkd;
+        triggerToast("價格修改成功！");
+      }
+    }
+
+    function updateListingQty(itemId, qtyVal) {
+      const item = state.inventory.find(inv => inv.id === itemId);
+      if (item) {
+        item.qty = Number(qtyVal);
+        triggerToast("庫存數量已更新！");
+      }
+    }
+
+    function toggleListingState(itemId) {
+      const item = state.inventory.find(inv => inv.id === itemId);
+      if (item) {
+        item.status = item.status === 'active' ? 'inactive' : 'active';
+        renderApp();
+      }
+    }
+
+    function deleteListingItem(itemId) {
+      state.inventory = state.inventory.filter(inv => inv.id !== itemId);
+      triggerToast("🗑️ 商品已從平台下架。");
+      renderApp();
+    }
+
+    function handleSellerPublish(e) {
+      e.preventDefault();
+      const cardId = document.getElementById('new-card-id').value;
+      const language = document.getElementById('new-lang').value;
+      const condition = document.getElementById('new-cond').value;
+      const priceVal = Number(document.getElementById('new-price').value);
+      const qtyVal = Number(document.getElementById('new-qty').value);
+
+      const priceInHkd = priceVal / EXCHANGE_RATES[state.currency];
+
+      const newListing = {
+        id: `inv-${Date.now()}`,
+        shopId: "shop-1",
+        cardId: cardId,
+        price: priceInHkd,
+        qty: qtyVal,
+        condition: condition,
+        language: language,
+        status: "active"
+      };
+
+      state.inventory.unshift(newListing);
+      triggerToast("✨ 成功發布新閃卡商品！已同步至買家格價端。");
+      renderApp();
+    }
+
+    // Modal Dispatchers
+    function renderModals() {
+      const wrapper = document.getElementById('modal-container');
+      let html = '';
+
+      // 1. Auth Login / Register Modal
+      if (state.authModalOpen) {
+        let authBodyHTML = '';
+        if (state.authStep === 1) {
+          const tabPhoneClass = state.authMethod === 'phone' ? 'bg-slate-800 text-white' : 'text-slate-400';
+          const tabEmailClass = state.authMethod === 'email' ? 'bg-slate-800 text-white' : 'text-slate-400';
+
+          const inputFormHTML = state.authMethod === 'phone' 
+            ? `
+              <div class="space-y-1.5 animate-fade-in">
+                <label class="text-xs text-slate-400 font-semibold">${t('phoneLabel')}</label>
+                <div class="flex gap-2">
+                  <select class="bg-slate-950 border border-slate-700 rounded-lg px-2 text-xs text-white focus:outline-none">
+                    <option>+852</option>
+                    <option>+886</option>
+                  </select>
+                  <input type="tel" id="reg-phone" placeholder="91234567" class="flex-1 bg-slate-950 border border-slate-700 rounded-lg p-3 text-sm focus:outline-none focus:border-yellow-500 text-white" />
+                </div>
+              </div>
+            `
+            : `
+              <div class="space-y-1.5 animate-fade-in">
+                <label class="text-xs text-slate-400 font-semibold">${t('emailLabel')}</label>
+                <input type="email" id="reg-email" placeholder="example@gmail.com" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-sm focus:outline-none focus:border-yellow-500 text-white" />
+              </div>
+            `;
+
+          authBodyHTML = `
+            <div class="space-y-4">
+              <!-- Honeypot Bot Interceptor field -->
+              <div style="position: absolute; left: -9999px;">
+                <input type="text" id="auth_username_hp" name="auth_username_hp" tabindex="-1" autocomplete="off" />
+              </div>
+
+              <div class="flex gap-2 bg-slate-950 p-1 rounded-lg border border-slate-800">
+                <button onclick="switchAuthTab('phone')" class="flex-1 py-2 text-xs font-bold rounded transition ${tabPhoneClass}">${t('phoneReg')}</button>
+                <button onclick="switchAuthTab('email')" class="flex-1 py-2 text-xs font-bold rounded transition ${tabEmailClass}">${t('emailReg')}</button>
+              </div>
+
+              ${inputFormHTML}
+
+              <!-- Simulated Cloudflare Turnstile Human Checkbox -->
+              <div class="bg-slate-950 border border-slate-800 rounded-lg p-3 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <input type="checkbox" id="cf-turnstile-mock" class="w-5 h-5 accent-emerald-500 cursor-pointer" />
+                  <span class="text-xs text-slate-300 font-semibold">${t('turnstileLabel')}</span>
+                </div>
+                <i data-lucide="shield-check" class="w-5 h-5 text-emerald-500"></i>
+              </div>
+
+              <!-- Quick Autofill Trigger for easier evaluation -->
+              <div class="text-center">
+                <button type="button" onclick="autofillRegistrationDetails()" class="bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 border border-yellow-500/30 px-3 py-1 rounded-xl text-[10px] font-bold transition">
+                  ⚡ 一鍵自動填寫人機與手機號
+                </button>
+              </div>
+
+              <button onclick="handleSendOTP()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-3 rounded-xl text-sm transition shadow-lg">
+                ${t('getOTP')}
+              </button>
+            </div>
+          `;
+        } else {
+          // Auth Step 2
+          authBodyHTML = `
+            <div class="space-y-4 pt-2">
+              <div class="space-y-1.5">
+                <label class="text-xs text-slate-400 font-semibold">${t('inputOTP')} (預設值: 123456)</label>
+                <input type="text" id="reg-otp" maxlength="6" placeholder="123456" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-center text-xl tracking-widest focus:outline-none focus:border-yellow-500 text-yellow-400 font-mono" />
+              </div>
+              <div class="space-y-1.5">
+                <label class="text-xs text-slate-400 font-semibold">${t('setNickname')}</label>
+                <input type="text" id="reg-name" placeholder="小智 Satoshi" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-sm focus:outline-none focus:border-yellow-500 text-white" />
+              </div>
+
+              <!-- Registration TOS Confirmation Checkbox -->
+              <div class="bg-slate-950 p-3 rounded-lg border border-slate-800">
+                <label class="flex items-start gap-2 cursor-pointer">
+                  <input type="checkbox" id="agree-terms" class="mt-1 accent-yellow-500" />
+                  <span class="text-xs text-slate-400 leading-relaxed">
+                    ${t('agreeTOS')}
+                    <a href="#" onclick="toggleTOSModal(true); return false;" class="text-yellow-400 hover:underline font-bold">${t('tosLink')}</a>
+                    ${t('tosSub')}
+                  </span>
+                </label>
+              </div>
+
+              <button onclick="verifyAndRegisterUser()" class="w-full bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-slate-950 font-black py-3 rounded-xl text-sm transition shadow-lg">
+                ${t('confirmRegister')}
+              </button>
+              
+              <button onclick="backToStepOne()" class="w-full text-xs text-slate-500 hover:text-slate-300 mt-2">${t('backBtn')}</button>
+            </div>
+          `;
+        }
+
+        html += `
+          <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl p-6 relative shadow-2xl space-y-4">
+              <button onclick="closeModal('authModalOpen')" class="absolute top-4 right-4 text-slate-500 hover:text-white bg-slate-800 rounded-full p-1">✕</button>
+              <div class="text-center">
+                <h2 class="text-xl font-black text-white">${t('quickAuth')}</h2>
+                <p class="text-xs text-slate-400 mt-1">${t('authSub')}</p>
+              </div>
+              <div class="border-t border-slate-800 pt-3">
+                ${authBodyHTML}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      // 2. Terms of Service Modal
+      if (state.tosModalOpen) {
+        html += `
+          <div class="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 z-[60]">
+            <div class="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl p-6 relative max-h-[80vh] flex flex-col shadow-2xl">
+              <h3 class="text-lg font-bold text-white border-b border-slate-800 pb-3 mb-3 flex justify-between items-center">
+                卡網 服務條款與免責聲明
+                <button onclick="toggleTOSModal(false)" class="text-slate-500 hover:text-white">✕</button>
+              </h3>
+              <div class="overflow-y-auto pr-2 text-xs text-slate-300 space-y-4 leading-relaxed">
+                <p>歡迎您註冊成為 PokeCardHK 會員。完成註冊即視為同意以下條款：</p>
+                <div>
+                  <strong class="text-yellow-400 text-sm">一、 知識產權與防止惡意複製</strong>
+                  <p class="mt-1">本站內所有介面設計、原創 CSS 閃爍與全方位市場數據整合之版權均屬本平台創辦人所有。嚴禁任何利用 AI 爬蟲、自動化大語言模型抓取、解析、拷貝或盜用本站之市場庫存數據。違者必追究法律責任。</p>
+                </div>
+                <div>
+                  <strong class="text-yellow-400 text-sm">二、 價格與資訊免責聲明</strong>
+                  <p class="mt-1">本平台所展示之市場價格、全球拍賣成交波動、商家上架庫存、卡況描述等數據僅供玩家休閒收藏參考，不構成任何二手或實體投資建議。任何因市場波動導致之財務損失，本站概不負責。</p>
+                </div>
+                <div>
+                  <strong class="text-yellow-400 text-sm">三、 私下交易安全免責</strong>
+                  <p class="mt-1">平台會員與實體商家或個人賣家私下達成的交收行為、WhatsApp 通訊、郵寄及交易成果屬個人民事行為，本站不為任何交易糾紛、卡片瑕疵或個人欺詐事件承擔任何民事或刑事責任。</p>
+                </div>
+              </div>
+              <button onclick="toggleTOSModal(false)" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl text-sm transition mt-4">
+                我已閱讀並了解
+              </button>
+            </div>
+          </div>
+        `;
+      }
+
+      // 3. News Detail Modal
+      if (state.currentSelectedNews) {
+        const news = state.currentSelectedNews;
+        html += `
+          <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-3xl p-6 relative shadow-2xl space-y-4">
+              <button onclick="closeModal('currentSelectedNews')" class="absolute top-4 right-4 text-slate-500 hover:text-white bg-slate-800 rounded-full p-1">✕</button>
+              
+              <div style="background: ${news.img};" class="w-full h-40 rounded-xl flex items-center justify-center relative overflow-hidden">
+                <span class="${news.tagColor} text-xs font-black px-2.5 py-1 rounded absolute top-4 left-4 uppercase tracking-wider">${news.tag}</span>
+              </div>
+
+              <div class="space-y-2">
+                <h3 class="text-xl font-extrabold text-slate-100">${news.title}</h3>
+                <p class="text-[11px] text-slate-500">發布日期：${news.date}</p>
+              </div>
+
+              <p class="text-xs text-slate-300 leading-relaxed pt-2 border-t border-slate-800">
+                ${news.content}
+              </p>
+
+              <button onclick="closeModal('currentSelectedNews')" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3 rounded-xl text-xs transition">
+                關閉新聞
+              </button>
+            </div>
+          </div>
+        `;
+      }
+
+      // 4. Contact Merchant Whatsapp Modal
+      if (state.contactModalShop) {
+        const sh = state.contactModalShop;
+        const msgText = encodeURIComponent(t('whatsappTemplateText').replace('{cardName}', state.selectedCard?.name[state.lang] || state.selectedCard?.name['zh-HK'] || ''));
+
+        html += `
+          <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+            <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl p-6 relative shadow-2xl space-y-4">
+              <button onclick="closeModal('contactModalShop')" class="absolute top-4 right-4 text-slate-500 hover:text-white bg-slate-800 rounded-full p-1">✕</button>
+              
+              <div class="space-y-1">
+                <span class="bg-yellow-400/10 text-yellow-400 text-[10px] font-bold px-2 py-0.5 rounded border border-yellow-400/20 uppercase">聯絡本地賣家</span>
+                <h3 class="text-xl font-black text-slate-100 pt-1">${sh.name}</h3>
+              </div>
+
+              <div class="space-y-3.5 border-t border-slate-800 pt-4 text-xs text-slate-300">
+                <div class="flex gap-2">
+                  <i data-lucide="map-pin" class="w-4 h-4 text-amber-400 shrink-0"></i>
+                  <div>
+                    <p class="font-bold text-slate-400">交收地址/詳情</p>
+                    <p class="mt-0.5">${sh.address}</p>
+                  </div>
+                </div>
+                <div class="flex gap-2">
+                  <i data-lucide="clock" class="w-4 h-4 text-amber-400 shrink-0"></i>
+                  <div>
+                    <p class="font-bold text-slate-400">營業時間</p>
+                    <p class="mt-0.5">${sh.hours}</p>
+                  </div>
+                </div>
+                <div class="flex gap-2">
+                  <i data-lucide="truck" class="w-4 h-4 text-cyan-400 shrink-0"></i>
+                  <div>
+                    <p class="font-bold text-slate-400">交收方式</p>
+                    <p class="mt-0.5">${sh.delivery}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center">
+                <p class="text-[10px] text-slate-400 font-bold mb-1">WhatsApp 預留聯絡：</p>
+                <p class="text-sm font-black text-emerald-400 flex items-center justify-center gap-1.5"><i data-lucide="phone" class="w-4 h-4 text-emerald-400"></i>${sh.whatsapp}</p>
+              </div>
+
+              <div class="flex gap-3">
+                <a href="https://wa.me/${sh.whatsapp.replace(/\D/g, '')}?text=${msgText}" target="_blank" class="flex-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-3 rounded-xl text-center text-xs transition flex items-center justify-center gap-1.5 shadow">
+                  <i data-lucide="phone" class="w-4 h-4"></i> ${t('whatsappBtn')}
+                </a>
+                <button onclick="closeModal('contactModalShop')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-3 rounded-xl text-xs font-bold transition">關閉</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      wrapper.innerHTML = html;
+      lucide.createIcons();
+    }
+
+    // Interactive Autofiller for testing credentials and bot check
+    function autofillRegistrationDetails() {
+      const turnstileCheckbox = document.getElementById('cf-turnstile-mock');
+      if (turnstileCheckbox) {
+        turnstileCheckbox.checked = true;
+      }
+      
+      const phoneInput = document.getElementById('reg-phone');
+      if (phoneInput) {
+        phoneInput.value = '61234567';
+      }
+
+      const emailInput = document.getElementById('reg-email');
+      if (emailInput) {
+        emailInput.value = 'satoshitcg@gmail.com';
+      }
+
+      triggerToast("🤖 已自動勾選人機驗證與填寫模擬號碼！");
+    }
+
+    function backToStepOne() {
+      state.authStep = 1;
+      renderModals();
+    }
+
+    function toggleTOSModal(open) {
+      state.tosModalOpen = open;
+      renderModals();
+    }
+
+    function openNewsDetail(newsId) {
+      const news = MOCK_NEWS.find(n => n.id === newsId);
+      if (news) {
+        state.currentSelectedNews = news;
+        renderModals();
+      }
+    }
+
+    function closeModal(stateKey) {
+      state[stateKey] = null;
+      if (stateKey === 'authModalOpen') {
+        state.authModalOpen = false;
+      }
+      renderModals();
+    }
+
+    // Startup Initializations
+    window.onload = function() {
+      renderApp();
+    };
+  </script>
+</body>
+</html>
