@@ -1778,15 +1778,16 @@ function performSearch() {
                 
 data.data.forEach(card => {
     const cardElement = document.createElement('div');
-    // 增加 overflow-hidden 防止內容溢出，並設定固定比例
-    cardElement.className = "bg-slate-800 p-2 rounded-lg border border-slate-700 hover:border-yellow-500 transition flex flex-col items-center";
+    // 把 p-2 改小一點，確保空間夠用，加上 flex-col 垂直排列
+    cardElement.className = "bg-slate-800 p-2 rounded-lg border border-slate-700 flex flex-col items-center";
     
+    // 關鍵修改：給 img 加上 block 和 w-full，確保它強制佔滿寬度
     cardElement.innerHTML = `
-        <div class="w-full aspect-[3/4] flex items-center justify-center overflow-hidden bg-slate-900 rounded">
+        <div class="w-full flex justify-center overflow-hidden rounded">
             <img src="${card.images.small}" 
+                 class="block w-full h-auto object-contain" 
                  alt="${card.name}" 
-                 class="w-full h-full object-contain"
-                 onerror="this.parentElement.innerHTML='<p class=\'text-xs text-slate-500\'>無圖</p>'">
+                 loading="lazy">
         </div>
         <p class="text-[10px] text-white mt-2 font-bold truncate w-full text-center">${card.name}</p>
     `;
