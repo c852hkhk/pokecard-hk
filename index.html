@@ -1769,42 +1769,87 @@ function performSearch() {
     
     // 關鍵改動：將 pageSize 增加到 20，並優化搜尋參數
     // 如果你打「火」，API 會嘗試搵卡名含有「火」字或者屬性相關嘅卡
-fetch(`https://api.pokemontcg.io/v2/cards?q=name:"${query}*"&pageSize=20`)
-        .then(res => res.json())
-        .then(data => {
-            if(data.data && data.data.length > 0) {
-                resultArea.innerHTML = `<div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mt-4"></div>`;
-                const grid = resultArea.querySelector('.grid');
-                
-data.data.forEach(card => {
-    const cardElement = document.createElement('div');
-    // 把 p-2 改小一點，確保空間夠用，加上 flex-col 垂直排列
-    cardElement.className = "bg-slate-800 p-2 rounded-lg border border-slate-700 flex flex-col items-center";
-    
-    // 關鍵修改：給 img 加上 block 和 w-full，確保它強制佔滿寬度
-//  這是全新修正的局部代碼（直接複製這段替換）：
-cardElement.className = "bg-slate-800 p-3 rounded-xl border border-slate-700 flex flex-col items-center shadow-lg transition hover:scale-105 duration-200";
+// 核心搜尋功能：支援中文、日文、英文、數字
+function doSearch() {
+  let query = searchInput.value.trim();
+  if (!query) {
+    resultArea.innerHTML = '<p class="text-amber-400 text-center">請輸入要搜尋的卡片名稱或編號！</p>';
+    return;
+  }
 
-cardElement.innerHTML = `
-    <div class="w-full flex justify-center overflow-hidden rounded-lg mb-3 bg-slate-900 min-h-[200px] items-center relative">
-        <img src="${card.images.small}" 
-             alt="${card.name}"
-             class="w-full h-auto object-contain block"
-             loading="lazy"
-             onerror="this.onerror=null; this.src='https://placehold.co/250x350/1e293b/a4b0be?text=No+Image';">
-    </div>
-    <div class="text-center w-full mt-auto">
-        <p class="text-amber-400 font-semibold text-xs sm:text-sm truncate">${card.name}</p>
-        <p class="text-slate-400 text-[11px] mt-1">${card.set.name} (${card.number})</p>
-    </div>
-`;
+  // 1. 建立【中日英核心名稱對照字典】（你可以自己隨時在下面增加更多常用卡名）
+  const pocketDictionary = {
+    // 中文對照
+    "噴火龍": "Charizard", "火龍": "Charizard", "小火龍": "Charmander",
+    "皮卡丘": "Pikachu", "比卡超": "Pikachu",
+    "伊布": "Eevee", "貝貝龍": "Lapras", "乘龍": "Lapras",
+    "超夢": "Mewtwo", "夢幻": "Mew", "洛奇亞": "Lugia",
+    "烈空坐": "Rayquaza", "耿鬼": "Gengar", "甲賀忍蛙": "Greninja",
     
-    grid.appendChild(cardElement);
-});
-            } else {
-                resultArea.innerHTML = '<p class="text-red-400 text-center">搵唔到相關結果，試吓打英文（例如: Fire）。</p>';
-            }
+    // 日文對照
+    "リザードン": "Charizard", "ヒトカゲ": "Charmander",
+    "ピカチュウ": "Pikachu", "イーブイ": "Eevee",
+    "ミュウツー": "Mewtwo", "ミュウ": "Mew", "ルギア": "Lugia"
+  };
+
+  // 2. 智能翻譯判斷
+  // 如果用戶輸入的值在字典內找到，就自動轉換成英文
+  if (pocketDictionary[query]) {
+    query = pocketDictionary[query];
+  } 
+  // 如果打中文「火」，特殊處理轉為常見的 Charizard 或是根據需要處理
+  else if (query === "火") {
+    query = "Charizard"; 
+  }
+
+  // 顯示加載中
+  resultArea.innerHTML = '<p class="text-slate-400 text-center animate-pulse">正在穿透數據庫，檢索相關卡片...</p>';
+  
+  // 3. 組裝 API 請求
+  // 如果輸入的是純數字（例如 25），我們會同時搜尋卡片編號（number）
+  let apiUrl = `https://api.pokemontcg.io/v2/cards?q=name:"${query}*"&pageSize=20`;
+  if (/^\d+$/.test(query)) {
+    // 如果是數字，改為搜尋該套組的第幾張卡，或者名稱含有該數字
+    apiUrl = `https://api.pokemontcg.io/v2/cards?q=number:${query}&pageSize=20`;
+  }
+
+  // 4. 發出請求
+  fetch(apiUrl)
+    .then(res => {
+      if (!res.ok) throw new Error('網絡連線或 API 出錯');
+      return res.json();
+    })
+    .then(data => {
+      if (data.data && data.data.length > 0) {
+        resultArea.innerHTML = `<div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6 mt-4"></div>`;
+        const grid = resultArea.querySelector('.grid');
+        
+        data.data.forEach(card => {
+          const cardElement = document.createElement('div');
+          cardElement.className = "bg-slate-800 p-3 rounded-xl border border-slate-700 flex flex-col items-center shadow-lg transition hover:scale-105 duration-200";
+          
+          cardElement.innerHTML = `
+            <div class="w-full flex justify-center overflow-hidden rounded-lg mb-3 bg-slate-900 min-h-[180px] items-center">
+              <img src="${card.images.small}" 
+                   alt="${card.name}"
+                   class="w-full h-auto object-contain block"
+                   onerror="this.onerror=null; this.src='https://placehold.co/250x350/1e293b/a4b0be?text=No+Image';">
+            </div>
+            <div class="text-center w-full">
+              <p class="text-amber-400 font-semibold text-sm truncate">${card.name}</p>
+              <p class="text-slate-400 text-xs mt-1">${card.set.name} (${card.number})</p>
+            </div>
+          `;
+          grid.appendChild(cardElement);
         });
+      } else {
+        resultArea.innerHTML = '<p class="text-rose-400 text-center">找不到相關卡片，請嘗試輸入英文或對照表內的名稱（例如: Pikachu, 噴火龍, 25）。</p>';
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      resultArea.innerHTML = `<p class="text-rose-500 text-center">載入失敗：${err.message}</p>`;
+    });
 }
 </script>
 </body>
