@@ -1782,15 +1782,22 @@ data.data.forEach(card => {
     cardElement.className = "bg-slate-800 p-2 rounded-lg border border-slate-700 flex flex-col items-center";
     
     // 關鍵修改：給 img 加上 block 和 w-full，確保它強制佔滿寬度
-    cardElement.innerHTML = `
-        <div class="w-full flex justify-center overflow-hidden rounded">
-            <img src="${card.images.small}" 
-                 class="block w-full h-auto object-contain" 
-                 alt="${card.name}" 
-                 loading="lazy">
-        </div>
-        <p class="text-[10px] text-white mt-2 font-bold truncate w-full text-center">${card.name}</p>
-    `;
+//  這是全新修正的局部代碼（直接複製這段替換）：
+cardElement.className = "bg-slate-800 p-3 rounded-xl border border-slate-700 flex flex-col items-center shadow-lg transition hover:scale-105 duration-200";
+
+cardElement.innerHTML = `
+    <div class="w-full flex justify-center overflow-hidden rounded-lg mb-3 bg-slate-900 min-h-[200px] items-center relative">
+        <img src="${card.images.small}" 
+             alt="${card.name}"
+             class="w-full h-auto object-contain block"
+             loading="lazy"
+             onerror="this.onerror=null; this.src='https://placehold.co/250x350/1e293b/a4b0be?text=No+Image';">
+    </div>
+    <div class="text-center w-full mt-auto">
+        <p class="text-amber-400 font-semibold text-xs sm:text-sm truncate">${card.name}</p>
+        <p class="text-slate-400 text-[11px] mt-1">${card.set.name} (${card.number})</p>
+    </div>
+`;
     
     grid.appendChild(cardElement);
 });
