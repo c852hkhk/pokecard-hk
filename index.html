@@ -1777,19 +1777,18 @@ function performSearch() {
                 const grid = resultArea.querySelector('.grid');
                 
 data.data.forEach(card => {
-    // 1. 先確認圖片是否存在，如果不存在就給一張預設圖，避免出現破碎圖示
-    const imageUrl = card.images && card.images.small ? card.images.small : 'https://via.placeholder.com/245x342?text=No+Image';
-    
     const cardElement = document.createElement('div');
-    cardElement.className = "bg-slate-800 p-2 rounded-lg border border-slate-700 hover:border-yellow-500 transition shadow-md";
+    // 增加 overflow-hidden 防止內容溢出，並設定固定比例
+    cardElement.className = "bg-slate-800 p-2 rounded-lg border border-slate-700 hover:border-yellow-500 transition flex flex-col items-center";
     
-    // 2. 加入 img 的 error 事件，如果圖片載入失敗，隱藏該圖片區塊
     cardElement.innerHTML = `
-        <img src="${imageUrl}" 
-             class="w-full h-auto rounded object-cover" 
-             alt="${card.name}" 
-             onerror="this.style.display='none'">
-        <p class="text-[10px] text-white mt-2 font-bold truncate text-center">${card.name}</p>
+        <div class="w-full aspect-[3/4] flex items-center justify-center overflow-hidden bg-slate-900 rounded">
+            <img src="${card.images.small}" 
+                 alt="${card.name}" 
+                 class="w-full h-full object-contain"
+                 onerror="this.parentElement.innerHTML='<p class=\'text-xs text-slate-500\'>無圖</p>'">
+        </div>
+        <p class="text-[10px] text-white mt-2 font-bold truncate w-full text-center">${card.name}</p>
     `;
     
     grid.appendChild(cardElement);
