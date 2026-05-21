@@ -1763,35 +1763,31 @@
 function performSearch() {
     const query = document.getElementById('myCardSearch').value;
     const resultArea = document.getElementById('searchResults');
-    if(!query) return alert('請輸入卡名');
+    if(!query) return alert('請輸入卡名或屬性');
     
-    resultArea.innerHTML = '<p class="text-slate-400 text-center animate-pulse">正在從官方資料庫讀取卡庫...</p>';
+    resultArea.innerHTML = '<p class="text-slate-400 text-center animate-pulse">搜尋中...</p>';
     
-    // pageSize 改為 8，讓用家可以揀
-    fetch(`https://api.pokemontcg.io/v2/cards?q=name:"${query}"&pageSize=8`)
+    // 關鍵改動：將 pageSize 增加到 20，並優化搜尋參數
+    // 如果你打「火」，API 會嘗試搵卡名含有「火」字或者屬性相關嘅卡
+    fetch(`https://api.pokemontcg.io/v2/cards?q=name:${query}*&pageSize=20`)
         .then(res => res.json())
         .then(data => {
             if(data.data && data.data.length > 0) {
-                // 清空區域並開始建立網格
-                resultArea.innerHTML = `<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4"></div>`;
+                resultArea.innerHTML = `<div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mt-4"></div>`;
                 const grid = resultArea.querySelector('.grid');
                 
                 data.data.forEach(card => {
                     const cardElement = document.createElement('div');
-                    cardElement.className = "bg-slate-800 p-2 rounded-lg border border-slate-700 hover:border-yellow-500 transition cursor-pointer";
+                    cardElement.className = "bg-slate-800 p-2 rounded-lg border border-slate-700 hover:border-yellow-500 transition";
                     cardElement.innerHTML = `
-                        <img src="${card.images.small}" class="w-full h-auto rounded" alt="${card.name}">
+                        <img src="${card.images.small}" class="w-full h-auto rounded" alt="${card.name}" loading="lazy">
                         <p class="text-[10px] text-white mt-2 font-bold truncate">${card.name}</p>
-                        <p class="text-[9px] text-slate-400">${card.set.name}</p>
                     `;
                     grid.appendChild(cardElement);
                 });
             } else {
-                resultArea.innerHTML = '<p class="text-red-400 text-center">搵唔到相關卡片，請檢查英文拼寫。</p>';
+                resultArea.innerHTML = '<p class="text-red-400 text-center">搵唔到相關結果，試吓打英文（例如: Fire）。</p>';
             }
-        })
-        .catch(err => {
-            resultArea.innerHTML = '<p class="text-red-500 text-center">系統連接超時。</p>';
         });
 }
 </script>
