@@ -1776,15 +1776,24 @@ function performSearch() {
                 resultArea.innerHTML = `<div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mt-4"></div>`;
                 const grid = resultArea.querySelector('.grid');
                 
-                data.data.forEach(card => {
-                    const cardElement = document.createElement('div');
-                    cardElement.className = "bg-slate-800 p-2 rounded-lg border border-slate-700 hover:border-yellow-500 transition";
-                    cardElement.innerHTML = `
-                        <img src="${card.images.small}" class="w-full h-auto rounded" alt="${card.name}" loading="lazy">
-                        <p class="text-[10px] text-white mt-2 font-bold truncate">${card.name}</p>
-                    `;
-                    grid.appendChild(cardElement);
-                });
+data.data.forEach(card => {
+    // 1. 先確認圖片是否存在，如果不存在就給一張預設圖，避免出現破碎圖示
+    const imageUrl = card.images && card.images.small ? card.images.small : 'https://via.placeholder.com/245x342?text=No+Image';
+    
+    const cardElement = document.createElement('div');
+    cardElement.className = "bg-slate-800 p-2 rounded-lg border border-slate-700 hover:border-yellow-500 transition shadow-md";
+    
+    // 2. 加入 img 的 error 事件，如果圖片載入失敗，隱藏該圖片區塊
+    cardElement.innerHTML = `
+        <img src="${imageUrl}" 
+             class="w-full h-auto rounded object-cover" 
+             alt="${card.name}" 
+             onerror="this.style.display='none'">
+        <p class="text-[10px] text-white mt-2 font-bold truncate text-center">${card.name}</p>
+    `;
+    
+    grid.appendChild(cardElement);
+});
             } else {
                 resultArea.innerHTML = '<p class="text-red-400 text-center">搵唔到相關結果，試吓打英文（例如: Fire）。</p>';
             }
